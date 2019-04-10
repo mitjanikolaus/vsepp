@@ -1,16 +1,23 @@
 # Improving Visual-Semantic Embeddings with Hard Negatives
 
-Code for the image-caption retrieval methods from ["VSE++: Improving 
-Visual-Semantic Embeddings with Hard Negatives" (Faghri, Fleet, Kiros, Fidler.  
-2017)](https://arxiv.org/abs/1707.05612).
+Code for the image-caption retrieval methods from
+**[VSE++: Improving Visual-Semantic Embeddings with Hard Negatives](https://arxiv.org/abs/1707.05612)**
+*, F. Faghri, D. J. Fleet, J. R. Kiros, S. Fidler, Proceedings of the British Machine Vision Conference (BMVC),  2018. (BMVC Spotlight)*
+
+**For compatibility with PyTorch4.1 the default behavior has changed such that 
+some of the results might not be reproduced. This is being investigated. Please 
+refer to issue #4**
 
 ## Dependencies
 We recommended to use Anaconda for the following packages.
 
 * Python 3.5
-* [PyTorch](http://pytorch.org/) (>0.2)
+* [PyTorch](http://pytorch.org/) (>0.4.1)
 * [NumPy](http://www.numpy.org/) (>1.12.1)
 * [TensorBoard](https://github.com/TeamHG-Memex/tensorboard_logger)
+* [pycocotools](https://github.com/cocodataset/cocoapi)
+* [torchvision]()
+* [matplotlib]()
 
 * Punkt Sentence Tokenizer:
 ```python
@@ -66,11 +73,12 @@ Arguments used to train pre-trained models:
 
 If you found this code useful, please cite the following paper:
 
-    @article{faghri2017vse++,
+    @article{faghri2018vse++,
       title={VSE++: Improving Visual-Semantic Embeddings with Hard Negatives},
       author={Faghri, Fartash and Fleet, David J and Kiros, Jamie Ryan and Fidler, Sanja},
-      journal={arXiv preprint arXiv:1707.05612},
-      year={2017}
+      booktitle = {Proceedings of the British Machine Vision Conference ({BMVC})},
+      url = {https://github.com/fartashf/vsepp},
+      year={2018}
     }
 
 ## License

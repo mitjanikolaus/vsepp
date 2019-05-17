@@ -37,8 +37,8 @@ def get_paths(path, name='coco', use_restval=False):
             'cap': os.path.join(capdir, 'captions_train2014.json')
         }
         roots['val'] = {
-            'img': os.path.join(imgdir, 'val2014'),
-            'cap': os.path.join(capdir, 'captions_val2014.json')
+            'img': os.path.join(imgdir, 'train2014'),
+            'cap': os.path.join(capdir, 'captions_train2014.json')
         }
         roots['test'] = {
             'img': os.path.join(imgdir, 'val2014'),
@@ -48,15 +48,22 @@ def get_paths(path, name='coco', use_restval=False):
             'img': (roots['train']['img'], roots['val']['img']),
             'cap': (roots['train']['cap'], roots['val']['cap'])
         }
-        ids['train'] = np.load(os.path.join(capdir, 'coco_train_ids.npy'))
-        ids['val'] = np.load(os.path.join(capdir, 'coco_dev_ids.npy'))[:5000]
-        ids['test'] = np.load(os.path.join(capdir, 'coco_test_ids.npy'))
-        ids['trainrestval'] = (
-            ids['train'],
-            np.load(os.path.join(capdir, 'coco_restval_ids.npy')))
-        if use_restval:
-            roots['train'] = roots['trainrestval']
-            ids['train'] = ids['trainrestval']
+        dataset_splits_dict = jsonmod.load(open(os.path.join('dataset_splits', 'dataset_splits_1.json'), "r"))
+        ids['train'] = np.array([int(id) for id in dataset_splits_dict["train_images_split"]])
+        ids['val'] = np.array([int(id) for id in dataset_splits_dict["val_images_split"]])
+        ids['test'] = np.array([int(id) for id in dataset_splits_dict["test_images_split"]])
+
+        # ids['train'] = np.load(os.path.join(capdir, 'coco_train_ids.npy'))
+        # ids['val'] = np.load(os.path.join(capdir, 'coco_dev_ids.npy'))[:5000]
+        # ids['test'] = np.load(os.path.join(capdir, 'coco_test_ids.npy'))
+        # ids['trainrestval'] = (
+        #     ids['train'],
+        #     np.load(os.path.join(capdir, 'coco_restval_ids.npy')))
+        # if use_restval:
+        #     roots['train'] = roots['trainrestval']
+        #     ids['train'] = ids['trainrestval']
+
+
     elif 'f8k' == name:
         imgdir = os.path.join(path, 'images')
         cap = os.path.join(path, 'dataset_flickr8k.json')

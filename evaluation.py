@@ -89,9 +89,11 @@ def encode_data(model, data_loader, log_step=10, logging=print):
     # numpy array to keep all the embeddings
     img_embs = None
     cap_embs = None
+    all_img_ids = []
     with torch.no_grad():
         for i, batch_data in enumerate(data_loader):
-            images, captions, lengths, ids = batch_data
+            images, captions, lengths, ids, img_ids = batch_data
+            all_img_ids.append(img_ids)
             # make sure val logger is used
             model.logger = val_logger
 
@@ -126,7 +128,7 @@ def encode_data(model, data_loader, log_step=10, logging=print):
                             e_log=str(model.logger)))
             del images, captions
 
-    return img_embs, cap_embs
+    return img_embs, cap_embs, all_img_ids
 
 
 def evalrank(model_path, data_path=None, split='dev', fold5=False):
@@ -467,12 +469,12 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
                                   opt.batch_size, opt.workers, opt)
 
     print('Computing results...')
-    embedded_images, embedded_captions = encode_data(model, data_loader)
+    embedded_images, embedded_captions, all_img_ids = encode_data(model, data_loader)
     print('Images: %d, Captions: %d' %
           (embedded_images.shape[0] / 5, embedded_captions.shape[0]))
 
-    print(embedded_images[0])
-    print(embedded_captions[0])
+    print("sample image ids: ")
+    print(all_img_ids[0:10])
     print("Recall@5 of pairs:")
     print(
         "Pair | Recall (n=1) | Recall (n=2) | Recall (n=3) | Recall (n=4) | Recall (n=5)"
@@ -488,7 +490,17 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
     #     len(all_captions), -1
     # )
 
-    for file in occurrences_data_files:
+    dataset_splits_dict = json.load(open(dataset_split), "r")
+    heldout_pairs = dataset_splits_dict["heldout_pairs"]
+
+    for pair in heldout_pairs:
+        occurrences_data_file = os.path.join(
+            base_dir, "data", "occurrences", pair + ".json"
+        )
+        occurrences_data = json.load(open(occurrences_data_file, "r"))
+
+        _, _, test_indices = get_splits_from_occurrences_data([pair])
+
         with open(file, "r") as json_file:
             occurrences_data = json.load(json_file)
 

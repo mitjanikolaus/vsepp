@@ -290,7 +290,7 @@ def collate_fn(data):
         end = lengths[i]
         targets[i, :end] = cap[:end]
 
-    return images, targets, lengths, ids
+    return images, targets, lengths, ids, img_ids
 
 
 def get_loader_single(data_name, split, root, json, vocab, transform,

@@ -49,9 +49,21 @@ def get_paths(path, name='coco', use_restval=False):
             'cap': (roots['train']['cap'], roots['val']['cap'])
         }
         dataset_splits_dict = jsonmod.load(open(os.path.join('dataset_splits', 'dataset_splits_1.json'), "r"))
-        ids['train'] = np.array([int(id) for id in dataset_splits_dict["train_images_split"]])
-        ids['val'] = np.array([int(id) for id in dataset_splits_dict["val_images_split"]])
-        ids['test'] = np.array([int(id) for id in dataset_splits_dict["test_images_split"]])
+        train_image_ids = np.array([int(id) for id in dataset_splits_dict["train_images_split"]])
+
+        annFile = os.path.join(capdir, 'captions_train2014.json')
+        coco = COCO(annFile)
+        ids['train'] = coco.getAnnIds(imgIds=train_image_ids)
+
+        val_image_ids = np.array([int(id) for id in dataset_splits_dict["val_images_split"]])
+        ids['val'] = coco.getAnnIds(imgIds=val_image_ids)
+
+        # evaluation_ids = np.array([int(id) for id in dataset_splits_dict["test_images_split"]])
+
+        dataset = jsonmod.load(open('../datasets/coco2014/annotations/captions_val2014.json', 'r'))
+        coco_val_ids = [d["id"] for d in dataset["images"]]
+
+        ids['test'] = coco_val_ids[:10000]
 
         # ids['train'] = np.load(os.path.join(capdir, 'coco_train_ids.npy'))
         # ids['val'] = np.load(os.path.join(capdir, 'coco_dev_ids.npy'))[:5000]
@@ -126,7 +138,7 @@ class CocoDataset(data.Dataset):
 
         # Convert caption (string) to word ids.
         tokens = nltk.tokenize.word_tokenize(
-            str(caption).lower().decode('utf-8'))
+            str(caption).lower())
         caption = []
         caption.append(vocab('<start>'))
         caption.extend([vocab(token) for token in tokens])
@@ -185,7 +197,7 @@ class FlickrDataset(data.Dataset):
 
         # Convert caption (string) to word ids.
         tokens = nltk.tokenize.word_tokenize(
-            str(caption).lower().decode('utf-8'))
+            str(caption).lower())
         caption = []
         caption.append(vocab('<start>'))
         caption.extend([vocab(token) for token in tokens])
@@ -212,6 +224,7 @@ class PrecompDataset(data.Dataset):
         with open(loc+'%s_caps.txt' % data_split, 'rb') as f:
             for line in f:
                 self.captions.append(line.strip())
+
 
         # Image features
         self.images = np.load(loc+'%s_ims.npy' % data_split)
@@ -375,9 +388,9 @@ def get_test_loader(split_name, data_name, vocab, crop_size, batch_size,
 
         transform = get_transform(data_name, split_name, opt)
         test_loader = get_loader_single(opt.data_name, split_name,
-                                        roots[split_name]['img'],
-                                        roots[split_name]['cap'],
-                                        vocab, transform, ids=ids[split_name],
+                                        roots["test"]['img'],
+                                        roots["test"]['cap'],
+                                        vocab, transform, ids=ids["test"],
                                         batch_size=batch_size, shuffle=False,
                                         num_workers=workers,
                                         collate_fn=collate_fn)

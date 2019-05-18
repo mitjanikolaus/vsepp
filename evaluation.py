@@ -90,10 +90,12 @@ def encode_data(model, data_loader, log_step=10, logging=print):
     img_embs = None
     cap_embs = None
     all_img_ids = []
+    all_captions = []
     with torch.no_grad():
         for i, batch_data in enumerate(data_loader):
             images, captions, lengths, ids, img_ids = batch_data
             all_img_ids.extend(img_ids)
+            all_captions.extend(captions)
             # make sure val logger is used
             model.logger = val_logger
 
@@ -128,7 +130,7 @@ def encode_data(model, data_loader, log_step=10, logging=print):
                             e_log=str(model.logger)))
             del images, captions
 
-    return img_embs, cap_embs, all_img_ids
+    return img_embs, cap_embs, all_img_ids, all_captions
 
 
 def evalrank(model_path, data_path=None, split='dev', fold5=False):
@@ -339,7 +341,7 @@ def get_ranking_splits_from_occurrences_data(occurrences_data_files):
 
         evaluation_indices.extend(
             [
-                key
+                int(key)
                 for key, value in occurrences_data[OCCURRENCE_DATA].items()
                 if value[PAIR_OCCURENCES] >= 1 and value[DATA_COCO_SPLIT] == "val2014"
             ]
@@ -470,9 +472,9 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
                                   opt.batch_size, opt.workers, opt)
 
     print('Computing results...')
-    embedded_images, embedded_captions, all_img_ids = encode_data(model, data_loader)
-    print('Images: %d, Captions: %d, Image IDs: %d ' %
-          (embedded_images.shape[0] / 5, embedded_captions.shape[0], len(all_img_ids)))
+    embedded_images, embedded_captions, all_img_ids, target_captions = encode_data(model, data_loader)
+    print('Images: %d, Embedded Captions: %d, Image IDs: %d, Target captions: %d ' %
+          (embedded_images.shape[0] / 5, embedded_captions.shape[0], len(all_img_ids), len(target_captions)))
 
     print("sample image ids: ")
     print(all_img_ids[:10])
@@ -515,6 +517,7 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
         true_positives = np.zeros(5)
         false_negatives = np.zeros(5)
         for i, coco_id in enumerate(evaluation_indices):
+            print("COCO IMG ID: ", coco_id)
             image = embedded_images[all_img_ids.index(coco_id)]
 
             # Compute similarity of image to all captions
@@ -528,6 +531,7 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
             hit = False
             for j in inds[:5]:
                 print(embedded_captions[j])
+                print(target_captions[j])
                 # caption = " ".join(
                 #     decode_caption(
                 #         get_caption_without_special_tokens(

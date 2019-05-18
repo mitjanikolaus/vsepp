@@ -93,7 +93,7 @@ def encode_data(model, data_loader, log_step=10, logging=print):
     with torch.no_grad():
         for i, batch_data in enumerate(data_loader):
             images, captions, lengths, ids, img_ids = batch_data
-            all_img_ids.append(img_ids)
+            all_img_ids.extend(img_ids)
             # make sure val logger is used
             model.logger = val_logger
 
@@ -344,6 +344,7 @@ def get_ranking_splits_from_occurrences_data(occurrences_data_files):
                 if value[PAIR_OCCURENCES] >= 1 and value[DATA_COCO_SPLIT] == "val2014"
             ]
         )
+    return evaluation_indices
 
 def get_adjectives_for_noun(pos_tagged_caption, nouns):
     dependencies = pos_tagged_caption.dependencies
@@ -470,11 +471,11 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
 
     print('Computing results...')
     embedded_images, embedded_captions, all_img_ids = encode_data(model, data_loader)
-    print('Images: %d, Captions: %d' %
-          (embedded_images.shape[0] / 5, embedded_captions.shape[0]))
+    print('Images: %d, Captions: %d, Image IDs: %d ' %
+          (embedded_images.shape[0] / 5, embedded_captions.shape[0], len(all_img_ids)))
 
     print("sample image ids: ")
-    print(all_img_ids[0:10])
+    print(all_img_ids[:10])
     print("Recall@5 of pairs:")
     print(
         "Pair | Recall (n=1) | Recall (n=2) | Recall (n=3) | Recall (n=4) | Recall (n=5)"
@@ -490,23 +491,17 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
     #     len(all_captions), -1
     # )
 
-    dataset_splits_dict = json.load(open(dataset_split), "r")
+    dataset_splits_dict = json.load(open(dataset_split, "r"))
     heldout_pairs = dataset_splits_dict["heldout_pairs"]
 
     for pair in heldout_pairs:
+        print("\n\n Eval for pair: ", pair)
         occurrences_data_file = os.path.join(
-            base_dir, "data", "occurrences", pair + ".json"
+            "occurrences", pair + ".json"
         )
+
+        evaluation_indices = get_ranking_splits_from_occurrences_data([occurrences_data_file])
         occurrences_data = json.load(open(occurrences_data_file, "r"))
-
-        _, _, test_indices = get_splits_from_occurrences_data([pair])
-
-        with open(file, "r") as json_file:
-            occurrences_data = json.load(json_file)
-
-        _, evaluation_indices = get_ranking_splits_from_occurrences_data([file])
-
-        name = os.path.basename(file).split(".")[0]
 
         nouns = set(occurrences_data[NOUNS])
         if ADJECTIVES in occurrences_data:

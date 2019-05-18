@@ -493,6 +493,8 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
     #     len(all_captions), -1
     # )
 
+    #TODO eval with only subset of data!
+
     dataset_splits_dict = json.load(open(dataset_split, "r"))
     heldout_pairs = dataset_splits_dict["heldout_pairs"]
 
@@ -525,7 +527,7 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
             inds = np.argsort(d)[::-1]
             index_list.append(inds[0])
 
-            count = occurrences_data[OCCURRENCE_DATA][coco_id][PAIR_OCCURENCES]
+            count = occurrences_data[OCCURRENCE_DATA][str(coco_id)][PAIR_OCCURENCES]
 
             # Look for pair occurrences in top 5 captions
             hit = False

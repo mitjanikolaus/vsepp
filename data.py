@@ -62,10 +62,16 @@ def get_paths(path, name='coco', use_restval=False):
 
         annFile = os.path.join(capdir, 'captions_val2014.json')
         coco = COCO(annFile)
-        evaluation_ann_ids = coco.getAnnIds(evaluation_image_ids)
+        evaluation_ann_ids = []
+        for img_id in evaluation_image_ids:
+            evaluation_ann_ids.extend(coco.getAnnIds(img_id)[:5])
 
-        all_ann_ids =  coco.getAnnIds()
-        extra_ann_ids = list(set(all_ann_ids) - set(evaluation_ann_ids))[:5000]
+
+        all_img_ids = coco.getImgIds()
+        extra_img_ids = list(set(all_img_ids) - set(evaluation_image_ids))[:1000]
+        extra_ann_ids = []
+        for img_id in extra_img_ids:
+            extra_ann_ids.extend(coco.getAnnIds(img_id)[:5])
 
         ids['test'] = evaluation_ann_ids + extra_ann_ids
         # ids['train'] = np.load(os.path.join(capdir, 'coco_train_ids.npy'))

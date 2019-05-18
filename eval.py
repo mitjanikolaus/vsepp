@@ -24,7 +24,7 @@ def main():
 
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
-    eval_compositional_splits(opt.checkpoint, data_path=opt.data_path, split=opt.split)
+    eval_compositional_splits(opt.checkpoint, data_path=opt.data_path, split="test", dataset_split=opt.split)
     # evalrank(opt.checkpoint, data_path=opt.data_path, split="test", fold5=True)
 
 

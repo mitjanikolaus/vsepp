@@ -443,7 +443,7 @@ def contains_verb_noun_pair(pos_tagged_caption, nouns, verbs):
 
 
 
-def eval_compositional_splits(model_path, data_path, split):
+def eval_compositional_splits(model_path, data_path, split, dataset_split):
     checkpoint = torch.load(model_path, map_location=device)
     opt = checkpoint['opt']
     if data_path is not None:

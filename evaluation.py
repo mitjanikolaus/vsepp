@@ -514,6 +514,8 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
             print("COCO IMG ID: ", coco_id)
             # Create test dataset
             target_captions_embedded = embedded_captions[all_img_ids.index(coco_id):all_img_ids.index(coco_id)+5]
+            print(target_captions_embedded.shape)
+            print(embedded_captions[-5000:].shape)
             target_captions_embedded = np.concatenate((target_captions_embedded, embedded_captions[-5000:]), axis=0)
 
             target_captions = all_captions[all_img_ids.index(coco_id):all_img_ids.index(coco_id)+5]

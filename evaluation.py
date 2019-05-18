@@ -534,8 +534,7 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
             for j in inds[:5]:
                 encoded_caption = target_captions[j]
                 print(encoded_caption)
-                rev_vocab = {v: k for k, v in vocab.items()}
-                decoded_caption = " ".join([rev_vocab[ind] for ind in encoded_caption])
+                decoded_caption = " ".join([vocab.idx2word[ind] for ind in encoded_caption])
                 print(decoded_caption)
                 pos_tagged_caption = nlp_pipeline(decoded_caption).sentences[0]
                 contains_pair = False

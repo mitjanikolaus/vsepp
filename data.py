@@ -58,13 +58,19 @@ def get_paths(path, name='coco', use_restval=False):
         val_image_ids = np.array([int(id) for id in dataset_splits_dict["val_images_split"]])
         ids['val'] = coco.getAnnIds(imgIds=val_image_ids)[:5000]
 
-        # evaluation_ids = np.array([int(id) for id in dataset_splits_dict["test_images_split"]])
+        evaluation_image_ids = np.array([int(id) for id in dataset_splits_dict["test_images_split"]])
 
-        dataset = jsonmod.load(open('../datasets/coco2014/annotations/captions_val2014.json', 'r'))
-        coco_val_ids = [d["id"] for d in dataset["images"]]
+        # dataset = jsonmod.load(open('../datasets/coco2014/annotations/captions_val2014.json', 'r'))
+        # coco_val_ids = [d["id"] for d in dataset["images"]]
 
-        ids['test'] = coco_val_ids[:1000]
+        annFile = os.path.join(capdir, 'captions_val2014.json')
+        coco = COCO(annFile)
+        evaluation_ann_ids = coco.getAnnIds(evaluation_image_ids)
 
+        all_ann_ids =  coco.getAnnIds()
+        extra_ann_ids = list(set(all_ann_ids) - set(evaluation_ann_ids))[:5000]
+
+        ids['test'] = evaluation_ann_ids + extra_ann_ids
         # ids['train'] = np.load(os.path.join(capdir, 'coco_train_ids.npy'))
         # ids['val'] = np.load(os.path.join(capdir, 'coco_dev_ids.npy'))[:5000]
         # ids['test'] = np.load(os.path.join(capdir, 'coco_test_ids.npy'))

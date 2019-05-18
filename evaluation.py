@@ -1,4 +1,6 @@
 from __future__ import print_function
+
+import json
 import os
 import pickle
 
@@ -10,6 +12,9 @@ from vocab import Vocabulary  # NOQA
 import torch
 from model import VSE, order_sim
 from collections import OrderedDict
+import stanfordnlp
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class AverageMeter(object):
@@ -307,3 +312,241 @@ def t2i(images, captions, npts=None, measure='cosine', return_ranks=False):
         return (r1, r5, r10, medr, meanr), (ranks, top1)
     else:
         return (r1, r5, r10, medr, meanr)
+
+PAIR_OCCURENCES = "pair_occurrences"
+OCCURRENCE_DATA = "adjective_noun_occurrence_data"
+DATA_COCO_SPLIT = "coco_split"
+NOUNS = "nouns"
+ADJECTIVES = "adjectives"
+VERBS = "verbs"
+
+RELATION_NOMINAL_SUBJECT = "nsubj"
+RELATION_ADJECTIVAL_MODIFIER = "amod"
+RELATION_CONJUNCT = "conj"
+RELATION_RELATIVE_CLAUSE_MODIFIER = "acl:relcl"
+RELATION_ADJECTIVAL_CLAUSE = "acl"
+
+
+
+def get_ranking_splits_from_occurrences_data(occurrences_data_files):
+    evaluation_indices = []
+
+    for file in occurrences_data_files:
+        with open(file, "r") as json_file:
+            occurrences_data = json.load(json_file)
+
+        evaluation_indices.extend(
+            [
+                key
+                for key, value in occurrences_data[OCCURRENCE_DATA].items()
+                if value[PAIR_OCCURENCES] >= 1 and value[DATA_COCO_SPLIT] == "val2014"
+            ]
+        )
+
+def get_adjectives_for_noun(pos_tagged_caption, nouns):
+    dependencies = pos_tagged_caption.dependencies
+
+    adjectives = {
+        d[2].lemma
+        for d in dependencies
+        if d[1] == RELATION_ADJECTIVAL_MODIFIER
+        and d[0].lemma in nouns
+        and d[2].upos == "ADJ"
+    } | {
+        d[0].lemma
+        for d in dependencies
+        if d[1] == RELATION_NOMINAL_SUBJECT
+        and d[2].lemma in nouns
+        and d[0].upos == "ADJ"
+    }
+    conjuncted_adjectives = set()
+    for adjective in adjectives:
+        conjuncted_adjectives.update(
+            {
+                d[2].lemma
+                for d in dependencies
+                if d[1] == RELATION_CONJUNCT
+                and d[0].lemma == adjective
+                and d[2].upos == "ADJ"
+            }
+            | {
+                d[2].lemma
+                for d in dependencies
+                if d[1] == RELATION_ADJECTIVAL_MODIFIER
+                and d[0].lemma == adjective
+                and d[2].upos == "ADJ"
+            }
+        )
+    return adjectives | conjuncted_adjectives
+
+
+def get_verbs_for_noun(pos_tagged_caption, nouns):
+    dependencies = pos_tagged_caption.dependencies
+
+    verbs = (
+        {
+            d[0].lemma
+            for d in dependencies
+            if d[1] == RELATION_NOMINAL_SUBJECT
+            and d[2].lemma in nouns
+            and d[0].upos == "VERB"
+        }
+        | {
+            d[2].lemma
+            for d in dependencies
+            if d[1] == RELATION_RELATIVE_CLAUSE_MODIFIER
+            and d[0].lemma in nouns
+            and d[2].upos == "VERB"
+        }
+        | {
+            d[2].lemma
+            for d in dependencies
+            if d[1] == RELATION_ADJECTIVAL_CLAUSE
+            and d[0].lemma in nouns
+            and d[2].upos == "VERB"
+        }
+    )
+
+    return verbs
+
+
+def contains_adjective_noun_pair(pos_tagged_caption, nouns, adjectives):
+    noun_is_present = False
+    adjective_is_present = False
+
+    for word in pos_tagged_caption.words:
+        if word.lemma in nouns:
+            noun_is_present = True
+        if word.lemma in adjectives:
+            adjective_is_present = True
+
+    caption_adjectives = get_adjectives_for_noun(pos_tagged_caption, nouns)
+    combination_is_present = bool(set(adjectives) & caption_adjectives)
+
+    return noun_is_present, adjective_is_present, combination_is_present
+
+
+def contains_verb_noun_pair(pos_tagged_caption, nouns, verbs):
+    noun_is_present = False
+    verb_is_present = False
+
+    for word in pos_tagged_caption.words:
+        if word.lemma in nouns:
+            noun_is_present = True
+        if word.lemma in verbs:
+            verb_is_present = True
+
+    caption_verbs = get_verbs_for_noun(pos_tagged_caption, nouns)
+    combination_is_present = bool(set(verbs) & caption_verbs)
+
+    return noun_is_present, verb_is_present, combination_is_present
+
+
+
+def eval_compositional_splits(model_path, data_path, split):
+    checkpoint = torch.load(model_path, map_location=device)
+    opt = checkpoint['opt']
+    if data_path is not None:
+        opt.data_path = data_path
+
+    # load vocabulary used by the model
+    with open(os.path.join(opt.vocab_path,
+                           '%s_vocab.pkl' % opt.data_name), 'rb') as f:
+        vocab = pickle.load(f)
+    opt.vocab_size = len(vocab)
+
+    # construct model
+    model = VSE(opt)
+
+    # load model state
+    model.load_state_dict(checkpoint['model'])
+
+    print('Loading dataset')
+    opt.data_name = "coco"
+    data_loader = get_test_loader(split, opt.data_name, vocab, opt.crop_size,
+                                  opt.batch_size, opt.workers, opt)
+
+    print('Computing results...')
+    embedded_images, embedded_captions = encode_data(model, data_loader)
+    print('Images: %d, Captions: %d' %
+          (embedded_images.shape[0] / 5, embedded_captions.shape[0]))
+
+    print("Recall@5 of pairs:")
+    print(
+        "Pair | Recall (n=1) | Recall (n=2) | Recall (n=3) | Recall (n=4) | Recall (n=5)"
+    )
+    nlp_pipeline = stanfordnlp.Pipeline()
+
+    embedding_size = next(iter(embedded_captions.values())).shape[1]
+
+    all_captions = np.array(list(embedded_captions.values())).reshape(
+        -1, embedding_size
+    )
+    # target_captions = np.array(list(target_captions.values())).reshape(
+    #     len(all_captions), -1
+    # )
+
+    for file in occurrences_data_files:
+        with open(file, "r") as json_file:
+            occurrences_data = json.load(json_file)
+
+        _, evaluation_indices = get_ranking_splits_from_occurrences_data([file])
+
+        name = os.path.basename(file).split(".")[0]
+
+        nouns = set(occurrences_data[NOUNS])
+        if ADJECTIVES in occurrences_data:
+            adjectives = set(occurrences_data[ADJECTIVES])
+        elif VERBS in occurrences_data:
+            verbs = set(occurrences_data[VERBS])
+        else:
+            raise ValueError("No adjectives or verbs found in occurrences data!")
+
+        index_list = []
+        true_positives = np.zeros(5)
+        false_negatives = np.zeros(5)
+        for i, coco_id in enumerate(evaluation_indices):
+            image = embedded_images[coco_id]
+
+            # Compute similarity of image to all captions
+            d = np.dot(image, all_captions.T).flatten()
+            inds = np.argsort(d)[::-1]
+            index_list.append(inds[0])
+
+            count = occurrences_data[OCCURRENCE_DATA][coco_id][PAIR_OCCURENCES]
+
+            # Look for pair occurrences in top 5 captions
+            hit = False
+            for j in inds[:5]:
+                caption = " ".join(
+                    decode_caption(
+                        get_caption_without_special_tokens(
+                            target_captions[j], word_map
+                        ),
+                        word_map,
+                    )
+                )
+                pos_tagged_caption = nlp_pipeline(caption).sentences[0]
+                contains_pair = False
+                if ADJECTIVES in occurrences_data:
+                    _, _, contains_pair = contains_adjective_noun_pair(
+                        pos_tagged_caption, nouns, adjectives
+                    )
+                elif VERBS in occurrences_data:
+                    _, _, contains_pair = contains_verb_noun_pair(
+                        pos_tagged_caption, nouns, verbs
+                    )
+                if contains_pair:
+                    hit = True
+
+            if hit:
+                true_positives[count - 1] += 1
+            else:
+                false_negatives[count - 1] += 1
+
+        # Compute metrics
+        recall = true_positives / (true_positives + false_negatives)
+
+        print("\n" + name, end=" | ")
+        for n in range(len(recall)):
+            print(float("%.2f" % recall[n]), end=" | ")

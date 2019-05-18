@@ -532,17 +532,12 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
             # Look for pair occurrences in top 5 captions
             hit = False
             for j in inds[:5]:
-                print(embedded_captions[j])
-                print(target_captions[j])
-                # caption = " ".join(
-                #     decode_caption(
-                #         get_caption_without_special_tokens(
-                #             target_captions[j], word_map
-                #         ),
-                #         word_map,
-                #     )
-                # )
-                pos_tagged_caption = nlp_pipeline(caption).sentences[0]
+                encoded_caption = target_captions[j]
+                print(encoded_caption)
+                rev_vocab = {v: k for k, v in vocab.items()}
+                decoded_caption = " ".join([rev_vocab[ind] for ind in encoded_caption])
+                print(decoded_caption)
+                pos_tagged_caption = nlp_pipeline(decoded_caption).sentences[0]
                 contains_pair = False
                 if ADJECTIVES in occurrences_data:
                     _, _, contains_pair = contains_adjective_noun_pair(

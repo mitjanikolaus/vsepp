@@ -471,6 +471,8 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
     print('Images: %d, Captions: %d' %
           (embedded_images.shape[0] / 5, embedded_captions.shape[0]))
 
+    print(embedded_images[0])
+    print(embedded_captions[0])
     print("Recall@5 of pairs:")
     print(
         "Pair | Recall (n=1) | Recall (n=2) | Recall (n=3) | Recall (n=4) | Recall (n=5)"

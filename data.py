@@ -60,9 +60,6 @@ def get_paths(path, name='coco', use_restval=False):
 
         evaluation_image_ids = np.array([int(id) for id in dataset_splits_dict["test_images_split"]])
 
-        # dataset = jsonmod.load(open('../datasets/coco2014/annotations/captions_val2014.json', 'r'))
-        # coco_val_ids = [d["id"] for d in dataset["images"]]
-
         annFile = os.path.join(capdir, 'captions_val2014.json')
         coco = COCO(annFile)
         evaluation_ann_ids = coco.getAnnIds(evaluation_image_ids)

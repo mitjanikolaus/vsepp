@@ -482,11 +482,11 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
     )
     nlp_pipeline = stanfordnlp.Pipeline()
 
-    embedding_size = next(iter(embedded_captions.values())).shape[1]
+    # embedding_size = next(iter(embedded_captions.values())).shape[1]
 
-    all_captions = np.array(list(embedded_captions.values())).reshape(
-        -1, embedding_size
-    )
+    # all_captions = np.array(list(embedded_captions.values())).reshape(
+    #     -1, embedding_size
+    # )
     # target_captions = np.array(list(target_captions.values())).reshape(
     #     len(all_captions), -1
     # )
@@ -515,10 +515,10 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
         true_positives = np.zeros(5)
         false_negatives = np.zeros(5)
         for i, coco_id in enumerate(evaluation_indices):
-            image = embedded_images[coco_id]
+            image = embedded_images[all_img_ids.index(coco_id)]
 
             # Compute similarity of image to all captions
-            d = np.dot(image, all_captions.T).flatten()
+            d = np.dot(image, embedded_captions.T).flatten()
             inds = np.argsort(d)[::-1]
             index_list.append(inds[0])
 
@@ -527,14 +527,15 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
             # Look for pair occurrences in top 5 captions
             hit = False
             for j in inds[:5]:
-                caption = " ".join(
-                    decode_caption(
-                        get_caption_without_special_tokens(
-                            target_captions[j], word_map
-                        ),
-                        word_map,
-                    )
-                )
+                print(embedded_captions[j])
+                # caption = " ".join(
+                #     decode_caption(
+                #         get_caption_without_special_tokens(
+                #             target_captions[j], word_map
+                #         ),
+                #         word_map,
+                #     )
+                # )
                 pos_tagged_caption = nlp_pipeline(caption).sentences[0]
                 contains_pair = False
                 if ADJECTIVES in occurrences_data:
@@ -556,6 +557,6 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
         # Compute metrics
         recall = true_positives / (true_positives + false_negatives)
 
-        print("\n" + name, end=" | ")
+        print("\n" + pair, end=" | ")
         for n in range(len(recall)):
             print(float("%.2f" % recall[n]), end=" | ")

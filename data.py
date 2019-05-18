@@ -63,7 +63,7 @@ def get_paths(path, name='coco', use_restval=False):
         dataset = jsonmod.load(open('../datasets/coco2014/annotations/captions_val2014.json', 'r'))
         coco_val_ids = [d["id"] for d in dataset["images"]]
 
-        ids['test'] = coco_val_ids[:10000]
+        ids['test'] = coco_val_ids[:1000]
 
         # ids['train'] = np.load(os.path.join(capdir, 'coco_train_ids.npy'))
         # ids['val'] = np.load(os.path.join(capdir, 'coco_dev_ids.npy'))[:5000]

@@ -95,7 +95,7 @@ def encode_data(model, data_loader, log_step=10, logging=print):
         for i, batch_data in enumerate(data_loader):
             images, captions, lengths, ids, img_ids = batch_data
             all_img_ids.extend(img_ids)
-            all_captions.extend(captions)
+            all_captions.extend(captions.cpu().numpy().copy())
             # make sure val logger is used
             model.logger = val_logger
 
@@ -472,9 +472,9 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
                                   opt.batch_size, opt.workers, opt)
 
     print('Computing results...')
-    embedded_images, embedded_captions, all_img_ids, target_captions = encode_data(model, data_loader)
-    print('Images: %d, Embedded Captions: %d, Image IDs: %d, Target captions: %d ' %
-          (embedded_images.shape[0] / 5, embedded_captions.shape[0], len(all_img_ids), len(target_captions)))
+    embedded_images, embedded_captions, all_img_ids, all_captions = encode_data(model, data_loader)
+    print('Images: %d, Embedded Captions: %d, Image IDs: %d, captions: %d ' %
+          (embedded_images.shape[0] / 5, embedded_captions.shape[0], len(all_img_ids), len(all_captions)))
 
     print("sample image ids: ")
     print(all_img_ids[:10])
@@ -484,14 +484,6 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
     )
     nlp_pipeline = stanfordnlp.Pipeline()
 
-    # embedding_size = next(iter(embedded_captions.values())).shape[1]
-
-    # all_captions = np.array(list(embedded_captions.values())).reshape(
-    #     -1, embedding_size
-    # )
-    # target_captions = np.array(list(target_captions.values())).reshape(
-    #     len(all_captions), -1
-    # )
 
     #TODO eval with only subset of data!
 
@@ -520,10 +512,17 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
         false_negatives = np.zeros(5)
         for i, coco_id in enumerate(evaluation_indices):
             print("COCO IMG ID: ", coco_id)
+            # Create test dataset
+            target_captions_embedded = embedded_captions[all_img_ids.index(coco_id):all_img_ids.index(coco_id)+5]
+            target_captions_embedded += embedded_captions[-5000:]
+
+            target_captions = all_captions[all_img_ids.index(coco_id):all_img_ids.index(coco_id)+5]
+            target_captions += all_captions[-5000:]
+
             image = embedded_images[all_img_ids.index(coco_id)]
 
             # Compute similarity of image to all captions
-            d = np.dot(image, embedded_captions.T).flatten()
+            d = np.dot(image, target_captions_embedded.T).flatten()
             inds = np.argsort(d)[::-1]
             index_list.append(inds[0])
 
@@ -532,9 +531,8 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
             # Look for pair occurrences in top 5 captions
             hit = False
             for j in inds[:5]:
-                encoded_caption = list(target_captions[j].numpy())
-                print(encoded_caption)
-                decoded_caption = " ".join([vocab.idx2word[ind] for ind in encoded_caption])
+                encoded_caption = list(target_captions[j])
+                decoded_caption = " ".join([vocab.idx2word[ind] for ind in encoded_caption if not (vocab.idx2word[ind] == "<pad>" or vocab.idx2word[ind] == "<start>" or vocab.idx2word[ind] == "<end>")])
                 print(decoded_caption)
                 pos_tagged_caption = nlp_pipeline(decoded_caption).sentences[0]
                 contains_pair = False

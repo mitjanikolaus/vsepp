@@ -532,7 +532,7 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
             # Look for pair occurrences in top 5 captions
             hit = False
             for j in inds[:5]:
-                encoded_caption = target_captions[j]
+                encoded_caption = list(target_captions[j].numpy())
                 print(encoded_caption)
                 decoded_caption = " ".join([vocab.idx2word[ind] for ind in encoded_caption])
                 print(decoded_caption)

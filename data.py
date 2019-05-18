@@ -56,7 +56,7 @@ def get_paths(path, name='coco', use_restval=False):
         ids['train'] = coco.getAnnIds(imgIds=train_image_ids)
 
         val_image_ids = np.array([int(id) for id in dataset_splits_dict["val_images_split"]])
-        ids['val'] = coco.getAnnIds(imgIds=val_image_ids)
+        ids['val'] = coco.getAnnIds(imgIds=val_image_ids)[:5000]
 
         # evaluation_ids = np.array([int(id) for id in dataset_splits_dict["test_images_split"]])
 

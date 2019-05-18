@@ -513,10 +513,10 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
         for i, coco_id in enumerate(evaluation_indices):
             print("COCO IMG ID: ", coco_id)
             # Create test dataset
-            print(embedded_captions[all_img_ids.index(coco_id):all_img_ids.index(coco_id)+5].shape)
-            print(embedded_captions[-5000:].shape)
             target_captions_embedded = np.concatenate((embedded_captions[all_img_ids.index(coco_id):all_img_ids.index(coco_id)+5], embedded_captions[-5000:]), axis=0)
 
+            print(all_captions[all_img_ids.index(coco_id):all_img_ids.index(coco_id)+5].shape)
+            print(all_captions[-5000:].shape)
             target_captions = np.concatenate((all_captions[all_img_ids.index(coco_id):all_img_ids.index(coco_id)+5], all_captions[-5000:]), axis=0)
 
             image = embedded_images[all_img_ids.index(coco_id)]

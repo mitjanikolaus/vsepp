@@ -517,7 +517,6 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
         else:
             raise ValueError("No adjectives or verbs found in occurrences data!")
 
-        index_list = []
         true_positives = dict.fromkeys(["N=1", "N=2", "N=3", "N=4", "N=5"], 0)
         numbers = dict.fromkeys(["N=1", "N=2", "N=3", "N=4", "N=5"], 0)
         for i, coco_id in enumerate(evaluation_indices):
@@ -532,7 +531,6 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
             # Compute similarity of image to all captions
             d = np.dot(image, target_captions_embedded.T).flatten()
             inds = np.argsort(d)[::-1]
-            index_list.append(inds[0])
 
             count = occurrences_data[OCCURRENCE_DATA][str(coco_id)][PAIR_OCCURENCES]
 

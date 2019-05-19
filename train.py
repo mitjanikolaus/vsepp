@@ -185,7 +185,7 @@ def train(opt, train_loader, model, epoch, val_loader):
 
 def validate(opt, val_loader, model):
     # compute the encoding for all the validation images and captions
-    img_embs, cap_embs = encode_data(
+    img_embs, cap_embs, _, _ = encode_data(
         model, val_loader, opt.log_step, logging.info)
 
     # caption retrieval

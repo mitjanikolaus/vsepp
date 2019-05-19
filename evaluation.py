@@ -330,7 +330,17 @@ RELATION_CONJUNCT = "conj"
 RELATION_RELATIVE_CLAUSE_MODIFIER = "acl:relcl"
 RELATION_ADJECTIVAL_CLAUSE = "acl"
 
+def average_recall(recall_scores):
+    pair_recalls_summed = 0
 
+    for pair in recall_scores.keys():
+        average_pair_recall = np.sum(
+            list(recall_scores[pair]["true_positives"].values())
+        ) / np.sum(list(recall_scores[pair]["numbers"].values()))
+        pair_recalls_summed += average_pair_recall
+
+    recall = pair_recalls_summed / len(recall_scores)
+    return recall
 
 def get_ranking_splits_from_occurrences_data(occurrences_data_files):
     evaluation_indices = []
@@ -485,10 +495,10 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
     nlp_pipeline = stanfordnlp.Pipeline()
 
 
-    #TODO eval with only subset of data!
-
     dataset_splits_dict = json.load(open(dataset_split, "r"))
     heldout_pairs = dataset_splits_dict["heldout_pairs"]
+
+    recall_scores = {}
 
     for pair in heldout_pairs:
         print("\n\n Eval for pair: ", pair)
@@ -509,7 +519,7 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
 
         index_list = []
         true_positives = np.zeros(5)
-        false_negatives = np.zeros(5)
+        numbers = np.zeros(5)
         for i, coco_id in enumerate(evaluation_indices):
             print("COCO IMG ID: ", coco_id)
             # Create test dataset
@@ -547,12 +557,18 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
 
             if hit:
                 true_positives[count - 1] += 1
-            else:
-                false_negatives[count - 1] += 1
+            numbers[count - 1] += 1
+
+        recall_scores[pair] = {}
+        recall_scores[pair]["true_positives"] = true_positives
+        recall_scores[pair]["numbers"] = numbers
 
         # Compute metrics
-        recall = true_positives / (true_positives + false_negatives)
+        recall = true_positives / numbers
 
         print("\n" + pair, end=" | ")
         for n in range(len(recall)):
             print(float("%.2f" % recall[n]), end=" | ")
+
+    print("Average Recall: {}".format(average_recall(recall_scores)))
+    json.dump(recall_scores, open("recall_scores_"+str(os.path.basename(dataset_split)), "w"))

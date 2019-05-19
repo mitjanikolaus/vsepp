@@ -518,8 +518,8 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
             raise ValueError("No adjectives or verbs found in occurrences data!")
 
         index_list = []
-        true_positives = np.zeros(5)
-        numbers = np.zeros(5)
+        true_positives = dict.fromkeys(["N=1", "N=2", "N=3", "N=4", "N=5"], 0)
+        numbers = dict.fromkeys(["N=1", "N=2", "N=3", "N=4", "N=5"], 0)
         for i, coco_id in enumerate(evaluation_indices):
             print("COCO IMG ID: ", coco_id)
             # Create test dataset
@@ -556,19 +556,17 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
                     hit = True
 
             if hit:
-                true_positives[count - 1] += 1
-            numbers[count - 1] += 1
+                true_positives["N={}".format(count)] += 1
+            numbers["N={}".format(count)] += 1
 
         recall_scores[pair] = {}
         recall_scores[pair]["true_positives"] = true_positives
         recall_scores[pair]["numbers"] = numbers
 
-        # Compute metrics
-        recall = true_positives / numbers
-
-        print("\n" + pair, end=" | ")
-        for n in range(len(recall)):
-            print(float("%.2f" % recall[n]), end=" | ")
+        average_pair_recall = np.sum(
+            list(recall_scores[pair]["true_positives"].values())
+        ) / np.sum(list(recall_scores[pair]["numbers"].values()))
+        print("{}: {}".format(pair, np.round(average_pair_recall, 2)))
 
     print("Average Recall: {}".format(average_recall(recall_scores)))
     json.dump(recall_scores, open("recall_scores_"+str(os.path.basename(dataset_split)), "w"))

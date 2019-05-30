@@ -520,10 +520,17 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
         true_positives = dict.fromkeys(["N=1", "N=2", "N=3", "N=4", "N=5"], 0)
         numbers = dict.fromkeys(["N=1", "N=2", "N=3", "N=4", "N=5"], 0)
         for i, coco_id in enumerate(evaluation_indices):
-            print("COCO IMG ID: ", coco_id)
+            print("\nCOCO IMG ID: ", coco_id)
             # Create test dataset
             indices_correct_captions = [i for i, x in enumerate(all_img_ids) if x == coco_id]
-            print("Correct indices: ", indices_correct_captions)
+            print("Correct captions: ", indices_correct_captions)
+            for j in indices_correct_captions:
+                encoded_caption = list(all_captions[j])
+                decoded_caption = " ".join([vocab.idx2word[ind] for ind in encoded_caption if not (
+                        vocab.idx2word[ind] == "<pad>" or vocab.idx2word[ind] == "<start>" or vocab.idx2word[
+                        ind] == "<end>")])
+                print(decoded_caption)
+
 
             target_captions_embedded = np.concatenate(([embedded_captions[i] for i in indices_correct_captions], embedded_captions[-5000:]), axis=0)
             target_captions = [all_captions[i] for i in indices_correct_captions] + all_captions[-5000:]

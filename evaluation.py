@@ -116,7 +116,7 @@ def encode_data(model, data_loader, log_step=10, logging=print):
             cap_embs[ids] = cap_emb.data.cpu().numpy().copy()
 
             #preserve also the captions and image coco ids
-            all_captions[ids] = captions.cpu().numpy().copy()
+            all_captions[ids] = list(captions.cpu().numpy().copy())
             all_img_ids[ids] = img_ids
 
             # measure accuracy and record loss

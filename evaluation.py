@@ -542,7 +542,7 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
             image = embedded_images[np.where(all_img_ids == coco_id)][0]
 
             # Compute similarity of image to all captions
-            d = np.dot(image, target_captions_embedded.T).flatten()
+            d = np.dot(image, np.array(target_captions_embedded).T).flatten()
             inds = np.argsort(d)[::-1]
 
             count = occurrences_data[OCCURRENCE_DATA][str(coco_id)][PAIR_OCCURENCES]

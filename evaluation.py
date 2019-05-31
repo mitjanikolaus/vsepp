@@ -89,12 +89,11 @@ def encode_data(model, data_loader, log_step=10, logging=print):
     # numpy array to keep all the embeddings
     img_embs = None
     cap_embs = None
-    all_img_ids = []
+    all_img_ids = None
     all_captions = None
     with torch.no_grad():
         for i, batch_data in enumerate(data_loader):
             images, captions, lengths, ids, img_ids = batch_data
-            all_img_ids.extend(img_ids)
 
             # make sure val logger is used
             model.logger = val_logger
@@ -108,15 +107,17 @@ def encode_data(model, data_loader, log_step=10, logging=print):
                     (len(data_loader.dataset), img_emb.size(1)))
                 cap_embs = np.zeros(
                     (len(data_loader.dataset), cap_emb.size(1)))
-                all_captions = np.zeros((len(data_loader.dataset), captions.size(1)))
+                all_captions = np.zeros(len(data_loader.dataset), captions.size(1))
+                all_img_ids = np.zeros(len(data_loader.dataset))
 
             # preserve the embeddings by copying from GPU
             # and converting to NumPy
             img_embs[ids] = img_emb.data.cpu().numpy().copy()
             cap_embs[ids] = cap_emb.data.cpu().numpy().copy()
 
-            #preserve also the captions
+            #preserve also the captions and image coco ids
             all_captions[ids] = captions.cpu().numpy().copy()
+            all_img_ids[ids] = img_ids
 
             # measure accuracy and record loss
             model.forward_loss(img_emb, cap_emb)
@@ -488,7 +489,7 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
     print('Computing results...')
     embedded_images, embedded_captions, all_img_ids, all_captions = encode_data(model, data_loader)
     print('Images: %d, Embedded Captions: %d, Image IDs: %d, captions: %d ' %
-          (embedded_images.shape[0] / 5, embedded_captions.shape[0], len(all_img_ids), all_captions.shape[0]))
+          (embedded_images.shape[0] / 5, embedded_captions.shape[0], all_img_ids.shape[0], all_captions.shape[0]))
 
     print("sample image ids: ")
     print(all_img_ids[:10])
@@ -535,11 +536,10 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
                         ind] == "<end>")])
                 print(decoded_caption)
 
-
             target_captions_embedded = np.concatenate(([embedded_captions[i] for i in indices_correct_captions], embedded_captions[-5000:]), axis=0)
             target_captions = np.concatenate(([all_captions[i] for i in indices_correct_captions], all_captions[-5000:]), axis=0)
 
-            image = embedded_images[all_img_ids.index(coco_id)]
+            image = embedded_images[np.where(all_img_ids == coco_id)][0]
 
             # Compute similarity of image to all captions
             d = np.dot(image, target_captions_embedded.T).flatten()

@@ -89,14 +89,19 @@ def encode_data(model, data_loader, log_step=10, logging=print):
     # numpy array to keep all the embeddings
     img_embs = None
     cap_embs = None
-    all_img_ids = None
-    all_captions = None
+    all_img_ids = np.zeros(len(data_loader.dataset))
+    all_captions = np.zeros(len(data_loader.dataset),dtype=object)
     with torch.no_grad():
         for i, batch_data in enumerate(data_loader):
             images, captions, lengths, ids, img_ids = batch_data
 
             # make sure val logger is used
             model.logger = val_logger
+
+            # preserve the captions and image coco ids
+            for j in ids:
+                all_captions[j] = captions[j].cpu().numpy().copy()
+            all_img_ids[ids] = img_ids
 
             # compute the embeddings
             img_emb, cap_emb = model.forward_emb(images, captions, lengths)
@@ -107,17 +112,11 @@ def encode_data(model, data_loader, log_step=10, logging=print):
                     (len(data_loader.dataset), img_emb.size(1)))
                 cap_embs = np.zeros(
                     (len(data_loader.dataset), cap_emb.size(1)))
-                all_captions = np.zeros(len(data_loader.dataset), dtype=object)
-                all_img_ids = np.zeros(len(data_loader.dataset))
 
             # preserve the embeddings by copying from GPU
             # and converting to NumPy
             img_embs[ids] = img_emb.data.cpu().numpy().copy()
             cap_embs[ids] = cap_emb.data.cpu().numpy().copy()
-
-            #preserve also the captions and image coco ids
-            all_captions[ids] = list(captions.cpu().numpy().copy())
-            all_img_ids[ids] = img_ids
 
             # measure accuracy and record loss
             model.forward_loss(img_emb, cap_emb)

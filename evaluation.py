@@ -107,7 +107,7 @@ def encode_data(model, data_loader, log_step=10, logging=print):
                     (len(data_loader.dataset), img_emb.size(1)))
                 cap_embs = np.zeros(
                     (len(data_loader.dataset), cap_emb.size(1)))
-                all_captions = np.zeros(len(data_loader.dataset), captions.size(1))
+                all_captions = np.zeros(len(data_loader.dataset), dtype=object)
                 all_img_ids = np.zeros(len(data_loader.dataset))
 
             # preserve the embeddings by copying from GPU

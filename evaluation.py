@@ -536,8 +536,8 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
                         ind] == "<end>")])
                 print(decoded_caption)
 
-            target_captions_embedded = np.concatenate(([embedded_captions[i] for i in indices_correct_captions], embedded_captions[-5000:]), axis=0)
-            target_captions = np.concatenate(([all_captions[i] for i in indices_correct_captions], all_captions[-5000:]), axis=0)
+            target_captions_embedded = list([embedded_captions[i] for i in indices_correct_captions]) + list(embedded_captions[-5000:])
+            target_captions = list([all_captions[i] for i in indices_correct_captions]) + list(all_captions[-5000:])
 
             image = embedded_images[np.where(all_img_ids == coco_id)][0]
 

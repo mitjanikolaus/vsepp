@@ -512,6 +512,7 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
         )
 
         evaluation_indices = get_ranking_splits_from_occurrences_data([occurrences_data_file])
+
         occurrences_data = json.load(open(occurrences_data_file, "r"))
 
         nouns = set(occurrences_data[NOUNS])
@@ -521,6 +522,29 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
             verbs = set(occurrences_data[VERBS])
         else:
             raise ValueError("No adjectives or verbs found in occurrences data!")
+
+        captions_with_constituents_indices = []
+        for i, caption in enumerate(all_captions):
+            decoded_caption = [vocab.idx2word[ind] for ind in list(caption) if not (
+                vocab.idx2word[ind] == "<pad>" or vocab.idx2word[ind] == "<start>" or vocab.idx2word[ind] == "<end>")]
+            print(" ".join(decoded_caption))
+
+            caption_tokens = set(decoded_caption)
+            noun_is_present = False
+            other_is_present = False
+            if nouns & caption_tokens:
+                noun_is_present = True
+            if ADJECTIVES in occurrences_data:
+                if adjectives & caption_tokens:
+                    other_is_present = True
+            elif VERBS in occurrences_data:
+                if verbs & caption_tokens:
+                    other_is_present = True
+
+            if (noun_is_present or other_is_present) and not (noun_is_present and other_is_present):
+                print("has constituents!")
+                captions_with_constituents_indices.append(i)
+
 
         true_positives = dict.fromkeys(["N=1", "N=2", "N=3", "N=4", "N=5"], 0)
         numbers = dict.fromkeys(["N=1", "N=2", "N=3", "N=4", "N=5"], 0)
@@ -549,21 +573,22 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
 
             # Look for pair occurrences in top 5 captions
             hit = False
+            print("Top 5 captions: ")
             for j in inds[:5]:
                 encoded_caption = list(target_captions[j])
                 decoded_caption = " ".join([vocab.idx2word[ind] for ind in encoded_caption if not (vocab.idx2word[ind] == "<pad>" or vocab.idx2word[ind] == "<start>" or vocab.idx2word[ind] == "<end>")])
                 print(decoded_caption)
                 pos_tagged_caption = nlp_pipeline(decoded_caption).sentences[0]
-                contains_pair = False
+                pair_is_present = False
                 if ADJECTIVES in occurrences_data:
-                    _, _, contains_pair = contains_adjective_noun_pair(
+                    _, _, pair_is_present = contains_adjective_noun_pair(
                         pos_tagged_caption, nouns, adjectives
                     )
                 elif VERBS in occurrences_data:
-                    _, _, contains_pair = contains_verb_noun_pair(
+                    _, _, pair_is_present = contains_verb_noun_pair(
                         pos_tagged_caption, nouns, verbs
                     )
-                if contains_pair:
+                if pair_is_present:
                     hit = True
 
             if hit:

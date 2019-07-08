@@ -68,7 +68,7 @@ def get_paths(path, name='coco', use_restval=False):
 
 
         all_img_ids = coco.getImgIds()
-        extra_img_ids = list(set(all_img_ids) - set(evaluation_image_ids))[:10000]
+        extra_img_ids = list(set(all_img_ids) - set(evaluation_image_ids))[:25000]
         extra_ann_ids = []
         for img_id in extra_img_ids:
             extra_ann_ids.extend(coco.getAnnIds(img_id)[:5])

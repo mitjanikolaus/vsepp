@@ -9,7 +9,7 @@ import numpy as np
 import json as jsonmod
 
 
-def get_paths(path, name='coco', use_restval=False):
+def get_paths(path, dataset_splits, name='coco', use_restval=False):
     """
     Returns paths to images and annotations for the given datasets. For MSCOCO
     indices are also returned to control the data split being used.
@@ -48,7 +48,7 @@ def get_paths(path, name='coco', use_restval=False):
             'img': (roots['train']['img'], roots['val']['img']),
             'cap': (roots['train']['cap'], roots['val']['cap'])
         }
-        dataset_splits_dict = jsonmod.load(open(os.path.join('dataset_splits', 'dataset_splits_1.json'), "r"))
+        dataset_splits_dict = jsonmod.load(open(dataset_splits, "r"))
         train_image_ids = np.array([int(id) for id in dataset_splits_dict["train_images_split"]])
 
         annFile = os.path.join(capdir, 'captions_train2014.json')
@@ -353,7 +353,7 @@ def get_transform(data_name, split_name, opt):
     return transform
 
 
-def get_loaders(data_name, vocab, crop_size, batch_size, workers, opt):
+def get_loaders(data_name, dataset_splits, vocab, crop_size, batch_size, workers, opt):
     dpath = os.path.join(opt.data_path, data_name)
     if opt.data_name.endswith('_precomp'):
         train_loader = get_precomp_loader(dpath, 'train', vocab, opt,
@@ -362,7 +362,7 @@ def get_loaders(data_name, vocab, crop_size, batch_size, workers, opt):
                                         batch_size, False, workers)
     else:
         # Build Dataset Loader
-        roots, ids = get_paths(dpath, data_name, opt.use_restval)
+        roots, ids = get_paths(dpath, dataset_splits, data_name, opt.use_restval)
 
         transform = get_transform(data_name, 'train', opt)
         train_loader = get_loader_single(opt.data_name, 'train',
@@ -385,7 +385,7 @@ def get_loaders(data_name, vocab, crop_size, batch_size, workers, opt):
     return train_loader, val_loader
 
 
-def get_test_loader(split_name, data_name, vocab, crop_size, batch_size,
+def get_test_loader(split_name, data_name, dataset_splits, vocab, crop_size, batch_size,
                     workers, opt):
     dpath = os.path.join(opt.data_path, data_name)
     if opt.data_name.endswith('_precomp'):
@@ -393,7 +393,7 @@ def get_test_loader(split_name, data_name, vocab, crop_size, batch_size,
                                          batch_size, False, workers)
     else:
         # Build Dataset Loader
-        roots, ids = get_paths(dpath, data_name, opt.use_restval)
+        roots, ids = get_paths(dpath, dataset_splits, data_name, opt.use_restval)
 
         transform = get_transform(data_name, split_name, opt)
         test_loader = get_loader_single(opt.data_name, split_name,

@@ -483,7 +483,7 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
 
     print('Loading dataset')
     opt.data_name = "coco"
-    data_loader = get_test_loader(split, opt.data_name, vocab, opt.crop_size,
+    data_loader = get_test_loader(split, opt.data_name, dataset_split, vocab, opt.crop_size,
                                   opt.batch_size, opt.workers, opt)
 
     print('Computing results...')

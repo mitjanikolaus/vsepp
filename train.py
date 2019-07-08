@@ -23,6 +23,7 @@ def main():
                         help='path to datasets')
     parser.add_argument('--data_name', default='precomp',
                         help='{coco,f8k,f30k,10crop}_precomp|coco|f8k|f30k')
+    parser.add_argument('--split', help='Path to compositional split JSON file')
     parser.add_argument('--vocab_path', default='./vocab/',
                         help='Path to saved vocabulary pickle files.')
     parser.add_argument('--margin', default=0.2, type=float,
@@ -88,7 +89,7 @@ def main():
 
     # Load data loaders
     train_loader, val_loader = data.get_loaders(
-        opt.data_name, vocab, opt.crop_size, opt.batch_size, opt.workers, opt)
+        opt.data_name, opt.split, vocab, opt.crop_size, opt.batch_size, opt.workers, opt)
 
     # Construct the model
     model = VSE(opt)

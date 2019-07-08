@@ -523,11 +523,10 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
         else:
             raise ValueError("No adjectives or verbs found in occurrences data!")
 
-        captions_with_constituents_indices = []
+        indices_captions_with_constituents = []
         for i, caption in enumerate(all_captions):
             decoded_caption = [vocab.idx2word[ind] for ind in list(caption) if not (
                 vocab.idx2word[ind] == "<pad>" or vocab.idx2word[ind] == "<start>" or vocab.idx2word[ind] == "<end>")]
-            print(" ".join(decoded_caption))
 
             caption_tokens = set(decoded_caption)
             noun_is_present = False
@@ -542,9 +541,10 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
                     other_is_present = True
 
             if (noun_is_present or other_is_present) and not (noun_is_present and other_is_present):
-                print("has constituents!")
-                captions_with_constituents_indices.append(i)
+                indices_captions_with_constituents.append(i)
 
+        print("Found %d captions with constituents" % len(indices_captions_with_constituents))
+        indices_captions_with_constituents = indices_captions_with_constituents[:4995]
 
         true_positives = dict.fromkeys(["N=1", "N=2", "N=3", "N=4", "N=5"], 0)
         numbers = dict.fromkeys(["N=1", "N=2", "N=3", "N=4", "N=5"], 0)
@@ -560,8 +560,8 @@ def eval_compositional_splits(model_path, data_path, split, dataset_split):
                         ind] == "<end>")])
                 print(decoded_caption)
 
-            target_captions_embedded = list([embedded_captions[i] for i in indices_correct_captions]) + list(embedded_captions[-5000:])
-            target_captions = list([all_captions[i] for i in indices_correct_captions]) + list(all_captions[-5000:])
+            target_captions_embedded = list([embedded_captions[i] for i in indices_correct_captions]) + list([embedded_captions[i] for i in indices_captions_with_constituents])
+            target_captions = list([all_captions[i] for i in indices_correct_captions]) + list([all_captions[i] for i in indices_captions_with_constituents])
 
             image = embedded_images[np.where(all_img_ids == coco_id)][0]
 
